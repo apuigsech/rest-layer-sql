@@ -33,7 +33,7 @@ func (h *SQLHandler) Find(ctx context.Context, q *query.Query) (list *resource.I
 		return nil, err
 	}
 
-	rows, err := h.session.Query(sqlQuery, sqlParams...)
+	rows, err := h.session.QueryContext(ctx, sqlQuery, sqlParams...)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (h *SQLHandler)Insert(ctx context.Context, items []*resource.Item) (err err
 			return err
 		}
 
-		_, err = h.session.Exec(sqlQuery, sqlParams...)
+		_, err = h.session.ExecContext(ctx, sqlQuery, sqlParams...)
 		if err != nil {
 			txPtr.Rollback()
 			return err
@@ -115,7 +115,7 @@ func (h *SQLHandler) Update(ctx context.Context, item *resource.Item, original *
 		return err
 	}
 
-	_, err = h.session.Exec(sqlQuery, sqlParams...)
+	_, err = h.session.ExecContext(ctx, sqlQuery, sqlParams...)
 	if err != nil {
 		txPtr.Rollback()
 		return err
@@ -135,7 +135,7 @@ func (h *SQLHandler) Delete(ctx context.Context, item *resource.Item) (err error
 		return err
 	}
 
-	_, err = h.session.Exec(sqlQuery, sqlParams...)
+	_, err = h.session.ExecContext(ctx, sqlQuery, sqlParams...)
 	if err != nil {
 		txPtr.Rollback()
 		return err
@@ -155,7 +155,7 @@ func (h *SQLHandler) Clear(ctx context.Context, q *query.Query) (total int, err 
 		return 0,err
 	}
 
-	res, err := h.session.Exec(sqlQuery, sqlParams...)
+	res, err := h.session.ExecContext(ctx, sqlQuery, sqlParams...)
 	if err != nil {
 		txPtr.Rollback()
 		return 0,err
