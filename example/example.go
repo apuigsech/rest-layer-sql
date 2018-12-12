@@ -19,7 +19,7 @@ const (
 	DB_DRIVER		= "sqlite3"
 	DB_SOURCE		= "file::memory:?cache=shared"
 
-	DB_TABLE_UP		= "CREATE TABLE units (id VARCHAR(128) PRIMARY KEY,etag VARCHAR(128),updated TIMESTAMP,created TIMESTAMP,str VARCHAR(150),int INTEGER)"
+	DB_TABLE_UP		= "CREATE TABLE IF NOT EXISTS units (id VARCHAR(128) PRIMARY KEY,etag VARCHAR(128),updated TIMESTAMP,created TIMESTAMP,str VARCHAR(150),int INTEGER)"
 )
 
 var (
