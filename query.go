@@ -4,9 +4,22 @@ import (
 	"fmt"
 
 	"github.com/rs/rest-layer/resource"
+	"github.com/rs/rest-layer/schema"
 	"github.com/rs/rest-layer/schema/query"
 )
 
+
+func buildCreateQuery(tableName string, s *schema.Schema) (sqlQuery string, sqlParams []interface{}, err error) {
+	schemaQuery, schemaParams, err := buildSchemaQuery(s)
+	if err != nil {
+		return "", []interface{}{}, err
+	}
+
+	sqlQuery = fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (%s)", tableName, schemaQuery)
+	sqlParams = append(sqlParams, schemaParams...)
+
+	return sqlQuery, sqlParams, nil
+}
 
 
 func buildSelectQuery(tableName string, q *query.Query) (sqlQuery string, sqlParams []interface{}, err error) {
@@ -186,4 +199,32 @@ func translatePredicate(q query.Predicate) (sqlQuery string, sqlParams []interfa
 		}
 	}
 	return sqlQuery, sqlParams, nil
+}
+
+func buildSchemaQuery(s *schema.Schema) (sqlQuery string, sqlParams []interface{}, err error) {
+	for fieldName, field := range s.Fields {
+		switch field.Validator.(type) {
+		case *schema.String:
+			f := field.Validator.(*schema.String)
+			sqlQuery += fmt.Sprintf("%s VARCHAR", fieldName)
+			if f.MaxLen > 0 {
+				sqlQuery += fmt.Sprintf("(%d)", f.MaxLen)
+			}
+		case *schema.Integer:
+			sqlQuery += fmt.Sprintf("%s INTEGER", fieldName)
+		case *schema.Float:
+			sqlQuery += fmt.Sprintf("%s FLOAT", fieldName)
+		case *schema.Bool:
+			sqlQuery += fmt.Sprintf("%s BIT(1)", fieldName)
+		case *schema.Time:
+			sqlQuery += fmt.Sprintf("%s TIMESTAMP", fieldName)
+		case *schema.URL:
+			sqlQuery += fmt.Sprintf("%s VARCHAR", fieldName)
+		default:
+			return "", []interface{}{}, resource.ErrNotImplemented
+		}
+		sqlQuery += ","
+	}
+
+	return sqlQuery[:len(sqlQuery)-1], []interface{}{}, nil
 }

@@ -1,10 +1,12 @@
 package sqlStorage
 
 import (
+	"fmt"
 	"context"
 	"database/sql"
 
 	"github.com/rs/rest-layer/resource"
+	"github.com/rs/rest-layer/schema"
 	"github.com/rs/rest-layer/schema/query"
 )
 
@@ -19,6 +21,26 @@ func NewHandler(db *sql.DB, tableName string) (h *SQLHandler) {
 		tableName: tableName,
 	}
 	return h
+}
+
+func (h *SQLHandler) Create(ctx context.Context, s *schema.Schema) (err error) {
+	txPtr, err := h.session.Begin()
+
+	sqlQuery, sqlParams, err := buildCreateQuery(h.tableName, s)
+	if err != nil {
+		txPtr.Rollback()
+		return err
+	}
+
+	_, err = h.session.ExecContext(ctx, sqlQuery, sqlParams...)
+	if err != nil {
+		txPtr.Rollback()
+		return err
+	}
+
+	txPtr.Commit()
+
+	return nil
 }
 
 func (h *SQLHandler) Find(ctx context.Context, q *query.Query) (list *resource.ItemList, err error) {

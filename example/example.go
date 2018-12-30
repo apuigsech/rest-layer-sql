@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"context"
 	"net/http"
 	"database/sql"
 
@@ -52,14 +53,15 @@ func main() {
 		log.Fatalf("Invalid DB configuration: %s", err)
 	}
 
-	_, err = db.Exec(DB_TABLE_UP)
-	if err != nil {
-		log.Fatalf("Invalid DB configuration: %s", err)
-	}	
-
 	index := resource.NewIndex()
 
-	index.Bind("units", unit, sqlStorage.NewHandler(db, "units"), resource.Conf{
+	s := sqlStorage.NewHandler(db, "units")
+	err = s.Create(context.TODO(), &unit)
+	if err != nil {
+		log.Fatalf("Error creating table: %s", err)
+	}
+
+	index.Bind("units", unit, s, resource.Conf{
 		AllowedModes: resource.ReadWrite,
 	})
 
