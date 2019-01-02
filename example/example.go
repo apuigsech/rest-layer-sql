@@ -4,7 +4,6 @@ import (
 	"log"
 	"context"
 	"net/http"
-	"database/sql"
 
 	"github.com/apuigsech/rest-layer-sql"
 
@@ -13,12 +12,12 @@ import (
 	"github.com/rs/rest-layer/schema"
 
 	_ "github.com/mattn/go-sqlite3"
-	//_ "github.com/gwenn/gosqlite"
 )
 
 const (
 	DB_DRIVER		= "sqlite3"
 	DB_SOURCE		= "file::memory:?cache=shared"
+	DB_TABLE 		= "units"
 
 	DB_TABLE_UP		= "CREATE TABLE IF NOT EXISTS units (id VARCHAR(128) PRIMARY KEY,etag VARCHAR(128),updated TIMESTAMP,created TIMESTAMP,str VARCHAR(150),int INTEGER)"
 )
@@ -48,19 +47,17 @@ var (
 )
 
 func main() {
-	db, err := sql.Open(DB_DRIVER, DB_SOURCE)
+	s, err := sqlStorage.NewHandler(DB_DRIVER, DB_SOURCE, DB_TABLE)
 	if err != nil {
-		log.Fatalf("Invalid DB configuration: %s", err)
+		log.Fatalf("Error connecting database: %s", err)
 	}
 
-	index := resource.NewIndex()
-
-	s := sqlStorage.NewHandler(db, "units")
 	err = s.Create(context.TODO(), &unit)
 	if err != nil {
 		log.Fatalf("Error creating table: %s", err)
 	}
 
+	index := resource.NewIndex()
 	index.Bind("units", unit, s, resource.Conf{
 		AllowedModes: resource.ReadWrite,
 	})

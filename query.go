@@ -9,7 +9,7 @@ import (
 )
 
 
-func buildCreateQuery(tableName string, s *schema.Schema) (sqlQuery string, sqlParams []interface{}, err error) {
+func buildCreateQuery(tableName string, s *schema.Schema, sqlBackend string) (sqlQuery string, sqlParams []interface{}, err error) {
 	schemaQuery, schemaParams, err := buildSchemaQuery(s)
 	if err != nil {
 		return "", []interface{}{}, err
@@ -18,11 +18,11 @@ func buildCreateQuery(tableName string, s *schema.Schema) (sqlQuery string, sqlP
 	sqlQuery = fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (%s)", tableName, schemaQuery)
 	sqlParams = append(sqlParams, schemaParams...)
 
-	return sqlQuery, sqlParams, nil
+	return transformQuery(sqlQuery, sqlBackend), sqlParams, nil
 }
 
 
-func buildSelectQuery(tableName string, q *query.Query) (sqlQuery string, sqlParams []interface{}, err error) {
+func buildSelectQuery(tableName string, q *query.Query, sqlBackend string) (sqlQuery string, sqlParams []interface{}, err error) {
 	predicateQuery, predicateParams, err := buildPredicateQuery(q)
 	if err != nil {
 		return "", []interface{}{}, err
@@ -43,12 +43,12 @@ func buildSelectQuery(tableName string, q *query.Query) (sqlQuery string, sqlPar
 		sqlParams = append(sqlParams, sortParams...)
 	}
 
-	return sqlQuery, sqlParams, nil
+	return transformQuery(sqlQuery, sqlBackend), sqlParams, nil
 }
 
 
 
-func buildInsertQuery(tableName string, i *resource.Item) (sqlQuery string, sqlParams []interface{}, err error) {
+func buildInsertQuery(tableName string, i *resource.Item, sqlBackend string) (sqlQuery string, sqlParams []interface{}, err error) {
 	columnsStr := "etag,"
 	valuesStr := "?,"
 	sqlParams = append(sqlParams, i.ETag)
@@ -64,11 +64,11 @@ func buildInsertQuery(tableName string, i *resource.Item) (sqlQuery string, sqlP
 
 	sqlQuery = fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", tableName, columnsStr, valuesStr)
 
-	return sqlQuery, sqlParams, nil
+	return transformQuery(sqlQuery, sqlBackend), sqlParams, nil
 }
 
 
-func buildUpdateQuery(tableName string, i *resource.Item, o *resource.Item) (sqlQuery string, sqlParams []interface{}, err error) {
+func buildUpdateQuery(tableName string, i *resource.Item, o *resource.Item, sqlBackend string) (sqlQuery string, sqlParams []interface{}, err error) {
 	setStr := "etag=?,"
 	sqlParams = append(sqlParams, i.ETag)
 
@@ -87,20 +87,20 @@ func buildUpdateQuery(tableName string, i *resource.Item, o *resource.Item) (sql
 
 	sqlQuery = fmt.Sprintf("UPDATE OR ROLLBACK %s SET %s WHERE id=? AND etag=?", tableName, setStr)
 
-	return sqlQuery, sqlParams, nil
+	return transformQuery(sqlQuery, sqlBackend), sqlParams, nil
 }
 
-func buildDeleteQuery(tableName string, i *resource.Item) (sqlQuery string, sqlParams []interface{}, err error) {
+func buildDeleteQuery(tableName string, i *resource.Item, sqlBackend string) (sqlQuery string, sqlParams []interface{}, err error) {
 	sqlParams = append(sqlParams, i.ID)
 	sqlParams = append(sqlParams, i.ETag)
 
 	sqlQuery = fmt.Sprintf("DELETE FROM %s WHERE id = ? AND etag = ?", tableName)
 
-	return sqlQuery, sqlParams, nil
+	return transformQuery(sqlQuery, sqlBackend), sqlParams, nil
 }
 
 
-func buildClearQuery(tableName string, q *query.Query) (sqlQuery string, sqlParams []interface{}, err error) {
+func buildClearQuery(tableName string, q *query.Query, sqlBackend string) (sqlQuery string, sqlParams []interface{}, err error) {
 	predicateQuery, predicateParams, err := buildPredicateQuery(q)
 	if err != nil {
 		return "", []interface{}{}, err
@@ -113,7 +113,7 @@ func buildClearQuery(tableName string, q *query.Query) (sqlQuery string, sqlPara
 		sqlParams = append(sqlParams, predicateParams...)
 	}
 
-	return sqlQuery, sqlParams, nil
+	return transformQuery(sqlQuery, sqlBackend), sqlParams, nil
 }
 
 
@@ -228,4 +228,28 @@ func buildSchemaQuery(s *schema.Schema) (sqlQuery string, sqlParams []interface{
 	}
 
 	return sqlQuery[:len(sqlQuery)-1], []interface{}{}, nil
+}
+
+func transformQuery(sqlQuery string, sqlBackend string) (string) {
+	switch sqlBackend {
+		case "sqlite3", "mysql":
+			return sqlQuery
+		case "postgres":
+			return transformQuery_postgres(sqlQuery)
+	}
+	return sqlQuery
+}
+
+func transformQuery_postgres(sqlQuery string) (newSqlQuery string) {
+	idx := 1
+	for _, ch := range sqlQuery {
+		if ch == '?' {
+			newSqlQuery += fmt.Sprintf("$%d", idx)
+			idx++
+		} else {
+			newSqlQuery += string(ch)
+		}
+		
+	}
+	return
 }
