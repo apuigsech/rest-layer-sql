@@ -202,6 +202,7 @@ func translatePredicate(q query.Predicate) (sqlQuery string, sqlParams []interfa
 }
 
 func buildSchemaQuery(s *schema.Schema) (sqlQuery string, sqlParams []interface{}, err error) {
+	sqlQuery = "etag VARCHAR(512),"
 	for fieldName, field := range s.Fields {
 		switch field.Validator.(type) {
 		case *schema.String:
