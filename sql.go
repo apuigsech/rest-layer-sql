@@ -1,7 +1,6 @@
 package sqlStorage
 
 import (
-	"fmt"
 	"context"
 	"database/sql"
 
@@ -31,27 +30,25 @@ func NewHandler(driverName string, dataSourceName string, tableName string) (h *
 	return h, nil
 }
 
-func (h *SQLHandler) Create(ctx context.Context, s *schema.Schema) (err error) {
-	txPtr, err := h.session.Begin()
-
-	sqlQuery, sqlParams, err := buildCreateQuery(h.tableName, s, h.driverName)
-	if err != nil {
-		txPtr.Rollback()
-		return err
-	}
-
-	_, err = h.session.ExecContext(ctx, sqlQuery, sqlParams...)
-	if err != nil {
-		txPtr.Rollback()
-		return err
-	}
-
-	txPtr.Commit()
-
-	return nil
+func (h *SQLHandler) ExecContext(ctx context.Context, sqlQuery string, sqlParams ...interface{}) (sql.Result, error) {
+	return h.session.ExecContext(ctx, sqlQuery, sqlParams...)
 }
 
-func (h *SQLHandler) Find(ctx context.Context, q *query.Query, ) (list *resource.ItemList, err error) {
+func (h *SQLHandler) QueryContext(ctx context.Context, sqlQuery string, sqlParams ...interface{}) (*sql.Rows, error) {
+	return h.session.QueryContext(ctx, sqlQuery, sqlParams...)
+}
+
+func (h *SQLHandler) Create(ctx context.Context, s *schema.Schema) (err error) {
+	sqlQuery, sqlParams, err := buildCreateQuery(h.tableName, s, h.driverName)
+	if err != nil {
+		return err
+	}
+
+	_, err = h.ExecContext(ctx, sqlQuery, sqlParams...)
+	return err
+}
+
+func (h *SQLHandler) Find(ctx context.Context, q *query.Query) (list *resource.ItemList, err error) {
 	list = &resource.ItemList{
 		Total: 0,
 		Limit: 10,
@@ -63,7 +60,7 @@ func (h *SQLHandler) Find(ctx context.Context, q *query.Query, ) (list *resource
 		return nil, err
 	}
 
-	rows, err := h.session.QueryContext(ctx, sqlQuery, sqlParams...)
+	rows, err := h.QueryContext(ctx, sqlQuery, sqlParams...)
 	if err != nil {
 		return nil, err
 	}
@@ -120,13 +117,10 @@ func (h *SQLHandler)Insert(ctx context.Context, items []*resource.Item) (err err
 	for _, i := range items {
 		sqlQuery, sqlParams, err := buildInsertQuery(h.tableName, i, h.driverName)
 		if err != nil {
-			txPtr.Rollback()
 			return err
 		}
 
-		fmt.Println(sqlQuery)
-
-		_, err = h.session.ExecContext(ctx, sqlQuery, sqlParams...)
+		_, err = h.ExecContext(ctx, sqlQuery, sqlParams...)
 		if err != nil {
 			txPtr.Rollback()
 			return err
@@ -139,43 +133,23 @@ func (h *SQLHandler)Insert(ctx context.Context, items []*resource.Item) (err err
 }
 
 func (h *SQLHandler) Update(ctx context.Context, item *resource.Item, original *resource.Item) (err error) {
-	txPtr, err := h.session.Begin()
-
 	sqlQuery, sqlParams, err := buildUpdateQuery(h.tableName, item, original, h.driverName)
 	if err != nil {
-		txPtr.Rollback()
 		return err
 	}
 
-	_, err = h.session.ExecContext(ctx, sqlQuery, sqlParams...)
-	if err != nil {
-		txPtr.Rollback()
-		return err
-	}
-
-	txPtr.Commit()
-
-	return nil
+	_, err  = h.ExecContext(ctx, sqlQuery, sqlParams...)
+	return err
 }
 
 func (h *SQLHandler) Delete(ctx context.Context, item *resource.Item) (err error) {
-	txPtr, err := h.session.Begin()
-
 	sqlQuery, sqlParams, err := buildDeleteQuery(h.tableName, item, h.driverName)
 	if err != nil {
-		txPtr.Rollback()
 		return err
 	}
 
-	_, err = h.session.ExecContext(ctx, sqlQuery, sqlParams...)
-	if err != nil {
-		txPtr.Rollback()
-		return err
-	}
-
-	txPtr.Commit()
-
-	return nil
+	_, err = h.ExecContext(ctx, sqlQuery, sqlParams...)
+	return err
 }
 
 func (h *SQLHandler) Clear(ctx context.Context, q *query.Query) (total int, err error) {
@@ -187,7 +161,7 @@ func (h *SQLHandler) Clear(ctx context.Context, q *query.Query) (total int, err 
 		return 0,err
 	}
 
-	res, err := h.session.ExecContext(ctx, sqlQuery, sqlParams...)
+	res, err := h.ExecContext(ctx, sqlQuery, sqlParams...)
 	if err != nil {
 		txPtr.Rollback()
 		return 0,err

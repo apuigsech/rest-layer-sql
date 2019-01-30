@@ -74,8 +74,14 @@ func buildUpdateQuery(tableName string, i *resource.Item, o *resource.Item, sqlB
 
 	for k, v := range i.Payload {
 		if k != "id" {
-			setStr += k + "=?,"
+			setStr += fmt.Sprintf("%s=?,", k)
 			sqlParams = append(sqlParams, v)
+		}
+	}
+
+	for k, _ := range o.Payload {
+		if _, ok := i.Payload[k]; ok == false {
+			setStr += fmt.Sprintf("%s=NULL,", k)
 		}
 	}
 
@@ -85,7 +91,7 @@ func buildUpdateQuery(tableName string, i *resource.Item, o *resource.Item, sqlB
 	sqlParams = append(sqlParams, o.ETag)
 
 
-	sqlQuery = fmt.Sprintf("UPDATE OR ROLLBACK %s SET %s WHERE id=? AND etag=?", tableName, setStr)
+	sqlQuery = fmt.Sprintf("UPDATE %s SET %s WHERE id=? AND etag=?", tableName, setStr)
 
 	return transformQuery(sqlQuery, sqlBackend), sqlParams, nil
 }

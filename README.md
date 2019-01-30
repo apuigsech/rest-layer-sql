@@ -8,16 +8,10 @@ This [REST Layer](https://github.com/rs/rest-layer) resource storage backend sto
 import "github.com/apuigsech/rest-layer-sql"
 ```
 
-Create a SQL master session:
+Create a resource storage handler with a given SQL driver, source and table:
 
 ```go
-db, err := sql.Open(DB_DRIVER, DB_SOURCE)
-```
-
-Create a resource storage handler with a given DB/collection:
-
-```go
-h := sqlStorage.NewHandler(db, "tableName")
+h := sqlStorage.NewHandler(DB_DRIVER, DB_SOURCE, DB_TABLE)
 ```
 
 Bind this resource storage handled to a resource:
@@ -40,7 +34,7 @@ $ go run example/example.go
 2018/12/07 18:29:53 Serving API on http://localhost:8080
 ```
 
-You can make requests using [HTTPie](https://httpie.org/).
+You can perform requests using [HTTPie](https://httpie.org/).
 
 ```bash
 $ http GET :8080/units
