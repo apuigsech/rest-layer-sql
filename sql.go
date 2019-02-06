@@ -113,6 +113,9 @@ func (h *SQLHandler) Find(ctx context.Context, q *query.Query) (list *resource.I
 
 func (h *SQLHandler)Insert(ctx context.Context, items []*resource.Item) (err error) {
 	txPtr, err := h.session.Begin()
+	if err != nil {
+		return err
+	}
 
 	for _, i := range items {
 		sqlQuery, sqlParams, err := buildInsertQuery(h.tableName, i, h.driverName)
@@ -154,6 +157,9 @@ func (h *SQLHandler) Delete(ctx context.Context, item *resource.Item) (err error
 
 func (h *SQLHandler) Clear(ctx context.Context, q *query.Query) (total int, err error) {
 	txPtr, err := h.session.Begin()
+	if err != nil {
+		return 0, err
+	}
 
 	sqlQuery, sqlParams, err := buildClearQuery(h.tableName, q, h.driverName)
 	if err != nil {
