@@ -13,8 +13,14 @@ func TestTranslatePredicate(t *testing.T) {
 		sqlQuery string
 		sqlParams []interface{}
 	}{
+		// Bug: Assuming predicate will have always only one item
 		{
-			"{int: 1}", 
+			"{a: 1, b: 1}",
+			"a IS ?b IS ?",
+			[]interface{}{1.0, 1.0},
+		},
+		{
+			"{int: 1}",
 			"int IS ?",
 			[]interface{}{1.0},
 		},
