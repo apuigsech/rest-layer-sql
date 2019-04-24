@@ -13,10 +13,10 @@ func TestTranslatePredicate(t *testing.T) {
 		sqlQuery string
 		sqlParams []interface{}
 	}{
-		// Bug: Assuming predicate will have always only one item
+		// Regression Test: Predicate items must be joined with AND
 		{
 			"{a: 1, b: 1}",
-			"a IS ?b IS ?",
+			"a IS ? AND b IS ?",
 			[]interface{}{1.0, 1.0},
 		},
 		{
