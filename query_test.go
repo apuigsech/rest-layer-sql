@@ -13,8 +13,14 @@ func TestTranslatePredicate(t *testing.T) {
 		sqlQuery string
 		sqlParams []interface{}
 	}{
+		// Regression Test: Predicate items must be joined with AND
 		{
-			"{int: 1}", 
+			"{a: 1, b: 1}",
+			"a IS ? AND b IS ?",
+			[]interface{}{1.0, 1.0},
+		},
+		{
+			"{int: 1}",
 			"int IS ?",
 			[]interface{}{1.0},
 		},

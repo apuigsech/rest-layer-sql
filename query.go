@@ -142,7 +142,10 @@ func buildSortQuery(q *query.Query) (sqlQuery string, sqlParams []interface{}, e
 }
 
 func translatePredicate(q query.Predicate) (sqlQuery string, sqlParams []interface{}, err error) {
-	for _, exp := range q {
+	for i, exp := range q {
+		if i > 0 {
+			sqlQuery += " AND "
+		}
 		switch t := exp.(type) {
 		case *query.And:
 			var s string
