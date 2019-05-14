@@ -21,13 +21,17 @@ func NewHandler(driverName string, dataSourceName string, tableName string) (h *
 		return nil, err
 	}
 
-	h = &SQLHandler{
-		driverName: driverName,
-		session:	db,
-		tableName:	tableName,
-	}
+	h = NewHandlerWithDB(driverName, db, tableName)
 
 	return h, nil
+}
+
+func NewHandlerWithDB(driverName string, db *sql.DB, tableName string) *SQLHandler {
+	return &SQLHandler{
+		driverName: driverName,
+		session:    db,
+		tableName:  tableName,
+	}
 }
 
 func (h *SQLHandler) ExecContext(ctx context.Context, sqlQuery string, sqlParams ...interface{}) (sql.Result, error) {
