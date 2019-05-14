@@ -2,10 +2,13 @@ package sqlStorage
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema"
 	"github.com/rs/rest-layer/schema/query"
+
+	"github.com/lib/pq"
 )
 
 
@@ -18,7 +21,7 @@ func buildCreateQuery(tableName string, s *schema.Schema, sqlBackend string) (sq
 	sqlQuery = fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (%s)", tableName, schemaQuery)
 	sqlParams = append(sqlParams, schemaParams...)
 
-	return transformQuery(sqlQuery, sqlBackend), sqlParams, nil
+	return transformQuery(sqlQuery, sqlBackend), transformParams(sqlParams, sqlBackend), nil
 }
 
 
@@ -43,7 +46,7 @@ func buildSelectQuery(tableName string, q *query.Query, sqlBackend string) (sqlQ
 		sqlParams = append(sqlParams, sortParams...)
 	}
 
-	return transformQuery(sqlQuery, sqlBackend), sqlParams, nil
+	return transformQuery(sqlQuery, sqlBackend), transformParams(sqlParams, sqlBackend), nil
 }
 
 
@@ -64,7 +67,7 @@ func buildInsertQuery(tableName string, i *resource.Item, sqlBackend string) (sq
 
 	sqlQuery = fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", tableName, columnsStr, valuesStr)
 
-	return transformQuery(sqlQuery, sqlBackend), sqlParams, nil
+	return transformQuery(sqlQuery, sqlBackend), transformParams(sqlParams, sqlBackend), nil
 }
 
 
@@ -93,7 +96,7 @@ func buildUpdateQuery(tableName string, i *resource.Item, o *resource.Item, sqlB
 
 	sqlQuery = fmt.Sprintf("UPDATE %s SET %s WHERE id=? AND etag=?", tableName, setStr)
 
-	return transformQuery(sqlQuery, sqlBackend), sqlParams, nil
+	return transformQuery(sqlQuery, sqlBackend), transformParams(sqlParams, sqlBackend), nil
 }
 
 func buildDeleteQuery(tableName string, i *resource.Item, sqlBackend string) (sqlQuery string, sqlParams []interface{}, err error) {
@@ -102,7 +105,7 @@ func buildDeleteQuery(tableName string, i *resource.Item, sqlBackend string) (sq
 
 	sqlQuery = fmt.Sprintf("DELETE FROM %s WHERE id = ? AND etag = ?", tableName)
 
-	return transformQuery(sqlQuery, sqlBackend), sqlParams, nil
+	return transformQuery(sqlQuery, sqlBackend), transformParams(sqlParams, sqlBackend), nil
 }
 
 
@@ -119,7 +122,7 @@ func buildClearQuery(tableName string, q *query.Query, sqlBackend string) (sqlQu
 		sqlParams = append(sqlParams, predicateParams...)
 	}
 
-	return transformQuery(sqlQuery, sqlBackend), sqlParams, nil
+	return transformQuery(sqlQuery, sqlBackend), transformParams(sqlParams, sqlBackend), nil
 }
 
 
@@ -261,4 +264,31 @@ func transformQuery_postgres(sqlQuery string) (newSqlQuery string) {
 		
 	}
 	return
+}
+
+func transformParams(sqlParams []interface{}, sqlBackend string) ([]interface{}) {
+	switch sqlBackend {
+		case "sqlite3", "mysql":
+			return sqlParams
+		case "postgres":
+			return transformParams_postgres(sqlParams)
+	}
+	return sqlParams
+}
+
+
+func transformParams_postgres(sqlParams []interface{}) ([]interface{}) {
+	var newSqlParams []interface{}
+
+	for _,p := range sqlParams {
+		t := reflect.TypeOf(p)
+		switch t.Kind() {
+			case reflect.Slice, reflect.Array:
+				newSqlParams = append(newSqlParams, pq.Array(p))
+			default:
+				newSqlParams = append(newSqlParams, p)
+		} 
+	}
+
+	return newSqlParams
 }
