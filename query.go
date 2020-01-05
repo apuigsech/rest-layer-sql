@@ -101,9 +101,12 @@ func buildUpdateQuery(tableName string, i *resource.Item, o *resource.Item, sqlB
 
 func buildDeleteQuery(tableName string, i *resource.Item, sqlBackend string) (sqlQuery string, sqlParams []interface{}, err error) {
 	sqlParams = append(sqlParams, i.ID)
-	sqlParams = append(sqlParams, i.ETag)
+	sqlQuery = fmt.Sprintf("DELETE FROM %s WHERE id = ?", tableName)
 
-	sqlQuery = fmt.Sprintf("DELETE FROM %s WHERE id = ? AND etag = ?", tableName)
+	if i.ETag != "" {
+		sqlParams = append(sqlParams, i.ETag)
+		sqlQuery += " AND etag = ?"
+	}
 
 	return transformQuery(sqlQuery, sqlBackend), transformParams(sqlParams, sqlBackend), nil
 }
