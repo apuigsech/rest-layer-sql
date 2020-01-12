@@ -1,4 +1,4 @@
-module gitlab.com/vulcan-security/rest-layer-sql
+module github.com/apuigsech/rest-layer-sql
 
 go 1.13
 
