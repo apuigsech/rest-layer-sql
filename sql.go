@@ -1,6 +1,7 @@
 package sqlStorage
 
 import (
+	"log"
 	"context"
 	"database/sql"
 
@@ -9,36 +10,59 @@ import (
 	"github.com/rs/rest-layer/schema/query"
 )
 
+const (
+	NONE = iota
+	ERR
+	WARN
+	DEBUG
+) 
+
+type Config struct {
+	VerboseLevel int
+}
+
 type SQLHandler struct {
 	driverName	string
 	session		*sql.DB
 	tableName 	string
+	config      *Config
 }
 
-func NewHandler(driverName string, dataSourceName string, tableName string) (h *SQLHandler, err error) {
+func NewHandler(driverName string, dataSourceName string, tableName string, config *Config) (h *SQLHandler, err error) {
 	db, err := sql.Open(driverName, dataSourceName)
 	if err != nil {
 		return nil, err
 	}
 
-	h = NewHandlerWithDB(driverName, db, tableName)
+	h = NewHandlerWithDB(driverName, db, tableName, config)
 
 	return h, nil
 }
 
-func NewHandlerWithDB(driverName string, db *sql.DB, tableName string) *SQLHandler {
+func NewHandlerWithDB(driverName string, db *sql.DB, tableName string, config *Config) *SQLHandler {
+	if (config == nil) {
+		config = &Config{}
+	}
+
 	return &SQLHandler{
 		driverName: driverName,
 		session:    db,
 		tableName:  tableName,
+		config: config,
 	}
 }
 
 func (h *SQLHandler) ExecContext(ctx context.Context, sqlQuery string, sqlParams ...interface{}) (sql.Result, error) {
+	if (h.config.VerboseLevel >= DEBUG) {
+		log.Println(sqlQuery, sqlParams)
+	}
 	return h.session.ExecContext(ctx, sqlQuery, sqlParams...)
 }
 
 func (h *SQLHandler) QueryContext(ctx context.Context, sqlQuery string, sqlParams ...interface{}) (*sql.Rows, error) {
+	if (h.config.VerboseLevel >= DEBUG) {
+		log.Println(sqlQuery, sqlParams)
+	}
 	return h.session.QueryContext(ctx, sqlQuery, sqlParams...)
 }
 
