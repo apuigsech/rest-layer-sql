@@ -126,8 +126,15 @@ func (h *SQLHandler) Find(ctx context.Context, q *query.Query) (list *resource.I
 			}
 		}
 
+		// Converting itemID from int64 to int
+		itemID := rowMap["id"]
+		switch itemID.(type) {
+		case int64:
+			itemID = int(itemID.(int64))
+		}
+
 		item := &resource.Item{
-			ID:      rowMap["id"],
+			ID:      itemID,
 			ETag:    etag,
 			//Updated: rowMap["updated"],
 			Payload: rowMap,
