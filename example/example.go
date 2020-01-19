@@ -5,7 +5,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/apuigsech/rest-layer-sql"
+	"github.com/ishan1608/rest-layer-sql"
 
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/rest"
