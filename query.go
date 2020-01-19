@@ -58,7 +58,7 @@ func buildInsertQuery(tableName string, i *resource.Item, sqlBackend string) (sq
 
 	for k, v := range i.Payload {
 		columnsStr += k + ","
-		valuesStr += "?," 
+		valuesStr += "?,"
 		sqlParams = append(sqlParams, v)
 	}
 
@@ -186,6 +186,8 @@ func translatePredicate(q query.Predicate) (sqlQuery string, sqlParams []interfa
 			switch t.Value.(type) {
 			case string:
 				sqlQuery += t.Field + " LIKE ?"
+			case int:
+				sqlQuery += t.Field + " = ?"
 			default:
 				sqlQuery += t.Field + " IS ?"
 			}
