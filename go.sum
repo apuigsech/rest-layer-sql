@@ -1,5 +1,5 @@
-github.com/ishan1608/rest-layer-sql v0.0.0-20200105084615-c5dcc6957f19 h1:2fCN8ZNBcsEJSfMlVcizGDDV/ge36ZZ8G82yKBp07AA=
-github.com/ishan1608/rest-layer-sql v0.0.0-20200105084615-c5dcc6957f19/go.mod h1:z6lFEFH7jTwZrtXng4Pjh520U885nJTrB2EVtGkQlAg=
+github.com/apuigsech/rest-layer-sql v0.0.0-20200105084615-c5dcc6957f19 h1:2fCN8ZNBcsEJSfMlVcizGDDV/ge36ZZ8G82yKBp07AA=
+github.com/apuigsech/rest-layer-sql v0.0.0-20200105084615-c5dcc6957f19/go.mod h1:z6lFEFH7jTwZrtXng4Pjh520U885nJTrB2EVtGkQlAg=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/evanphx/json-patch v4.1.0+incompatible h1:K1MDoo4AZ4wU0GIU/fPmtZg7VpzLjCxu+UwBD1FvwOc=
 github.com/evanphx/json-patch v4.1.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=
