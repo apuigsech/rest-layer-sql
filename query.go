@@ -33,7 +33,11 @@ func buildSelectQuery(tableName string, q *query.Query, sqlBackend string) (sqlQ
 	sortQuery, sortParams, err := buildSortQuery(q)
 	if err != nil {
 		return "", []interface{}{}, err
-	}	
+	}
+	paginationQuery, err := buildPaginationQuery(q)
+	if err != nil {
+		return "", []interface{}{}, err
+	}
 
 	sqlQuery = fmt.Sprintf("SELECT * FROM %s", tableName)
 	if predicateQuery != "" {
@@ -46,6 +50,9 @@ func buildSelectQuery(tableName string, q *query.Query, sqlBackend string) (sqlQ
 		sqlParams = append(sqlParams, sortParams...)
 	}
 
+	if paginationQuery != "" {
+		sqlQuery += fmt.Sprintf(" %s", paginationQuery)
+	}
 	return transformQuery(sqlQuery, sqlBackend), transformParams(sqlParams, sqlBackend), nil
 }
 
@@ -145,6 +152,21 @@ func buildSortQuery(q *query.Query) (sqlQuery string, sqlParams []interface{}, e
 		sqlQuery += ","
 	}
 	return sqlQuery[:len(sqlQuery)-1], []interface{}{}, nil
+}
+
+func buildPaginationQuery(q *query.Query) (sqlQuery string, err error) {
+	if q.Window == nil{
+		return
+	}
+	limit := q.Window.Limit
+	if limit > 0 {
+		sqlQuery += fmt.Sprintf(" LIMIT %d", limit)
+	}
+	offset := q.Window.Offset
+	if offset > 0 {
+		sqlQuery += fmt.Sprintf(" OFFSET %d", offset)
+	}
+	return
 }
 
 func translatePredicate(q query.Predicate) (sqlQuery string, sqlParams []interface{}, err error) {
