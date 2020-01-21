@@ -3,6 +3,7 @@ package sqlStorage
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema"
@@ -62,17 +63,28 @@ func buildInsertQuery(tableName string, i *resource.Item, sqlBackend string) (sq
 	columnsStr := "etag,"
 	valuesStr := "?,"
 	sqlParams = append(sqlParams, i.ETag)
+	var returningColumns []string
+	returningStr := ""
 
 	for k, v := range i.Payload {
-		columnsStr += k + ","
-		valuesStr += "?,"
-		sqlParams = append(sqlParams, v)
+		switch v.(type) {
+		case AutoIncrementingInteger:
+			returningColumns = append(returningColumns, k)
+		default:
+			columnsStr += k + ","
+			valuesStr += "?,"
+			sqlParams = append(sqlParams, v)
+		}
 	}
 
 	columnsStr = columnsStr[:len(columnsStr)-1]
 	valuesStr = valuesStr[:len(valuesStr)-1]
 
-	sqlQuery = fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", tableName, columnsStr, valuesStr)
+	if len(returningColumns) > 0 {
+		returningStr += fmt.Sprintf(" RETURNING %s", strings.Join(returningColumns, ","))
+	}
+
+	sqlQuery = fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)%s", tableName, columnsStr, valuesStr, returningStr)
 
 	return transformQuery(sqlQuery, sqlBackend), transformParams(sqlParams, sqlBackend), nil
 }
