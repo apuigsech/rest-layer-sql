@@ -5,7 +5,7 @@ This [REST Layer](https://github.com/rs/rest-layer) resource storage backend sto
 ## Usage
 
 ```go
-import "github.com/ishan1608/rest-layer-sql"
+import "github.com/apuigsech/rest-layer-sql"
 ```
 
 Create a resource storage handler with a given SQL driver, source and table:
