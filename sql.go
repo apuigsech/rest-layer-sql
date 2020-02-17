@@ -15,7 +15,9 @@ const (
 	ERR
 	WARN
 	DEBUG
-) 
+)
+
+type AutoIncrementingInteger int
 
 type Config struct {
 	VerboseLevel int
@@ -126,8 +128,15 @@ func (h *SQLHandler) Find(ctx context.Context, q *query.Query) (list *resource.I
 			}
 		}
 
+		// Converting itemID from int64 to int
+		itemID := rowMap["id"]
+		switch itemID.(type) {
+		case int64:
+			itemID = int(itemID.(int64))
+		}
+
 		item := &resource.Item{
-			ID:      rowMap["id"],
+			ID:      itemID,
 			ETag:    etag,
 			//Updated: rowMap["updated"],
 			Payload: rowMap,
@@ -145,16 +154,73 @@ func (h *SQLHandler)Insert(ctx context.Context, items []*resource.Item) (err err
 		return err
 	}
 
-	for _, i := range items {
-		sqlQuery, sqlParams, err := buildInsertQuery(h.tableName, i, h.driverName)
+	for _, item := range items {
+		sqlQuery, sqlParams, err := buildInsertQuery(h.tableName, item, h.driverName)
 		if err != nil {
 			return err
 		}
 
-		_, err = h.ExecContext(ctx, sqlQuery, sqlParams...)
-		if err != nil {
-			txPtr.Rollback()
-			return err
+		if h.driverName == "postgres" {
+			rows, err := h.QueryContext(ctx, sqlQuery, sqlParams...)
+			if err != nil {
+				txPtr.Rollback()
+				return err
+			}
+
+			cols, err := rows.Columns()
+			if err != nil {
+				return err
+			}
+
+			for rows.Next() {
+				rowMap := make(map[string]interface{})
+				rowVals := make([]interface{}, len(cols))
+				rowValPtrs := make([]interface{}, len(cols))
+				var etag string
+
+				for i, _ := range cols {
+					rowValPtrs[i] = &rowVals[i]
+				}
+
+				err := rows.Scan(rowValPtrs...)
+				if err != nil {
+					return err
+				}
+
+				for i, v := range rowVals {
+					b, ok := v.([]byte)
+					if ok {
+						v = string(b)
+					}
+
+					if (cols[i] == "etag") {
+						etag = v.(string)
+					} else {
+						rowMap[cols[i]] = v
+					}
+				}
+
+				// Converting itemID from int64 to int
+				itemID := rowMap["id"]
+				switch itemID.(type) {
+				case int64:
+					itemID = int(itemID.(int64))
+				}
+
+				item.ID = itemID
+				item.ETag = etag
+
+				// Updating the payload with db generated values
+				for _, v := range cols {
+					item.Payload[v] = rowMap[v]
+				}
+			}
+		} else {
+			_, err = h.ExecContext(ctx, sqlQuery, sqlParams...)
+			if err != nil {
+				txPtr.Rollback()
+				return err
+			}
 		}
 	}
 

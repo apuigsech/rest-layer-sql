@@ -3,6 +3,7 @@ package sqlStorage
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/rs/rest-layer/resource"
 	"github.com/rs/rest-layer/schema"
@@ -33,7 +34,11 @@ func buildSelectQuery(tableName string, q *query.Query, sqlBackend string) (sqlQ
 	sortQuery, sortParams, err := buildSortQuery(q)
 	if err != nil {
 		return "", []interface{}{}, err
-	}	
+	}
+	paginationQuery, err := buildPaginationQuery(q)
+	if err != nil {
+		return "", []interface{}{}, err
+	}
 
 	sqlQuery = fmt.Sprintf("SELECT * FROM %s", tableName)
 	if predicateQuery != "" {
@@ -46,6 +51,9 @@ func buildSelectQuery(tableName string, q *query.Query, sqlBackend string) (sqlQ
 		sqlParams = append(sqlParams, sortParams...)
 	}
 
+	if paginationQuery != "" {
+		sqlQuery += fmt.Sprintf(" %s", paginationQuery)
+	}
 	return transformQuery(sqlQuery, sqlBackend), transformParams(sqlParams, sqlBackend), nil
 }
 
@@ -55,17 +63,28 @@ func buildInsertQuery(tableName string, i *resource.Item, sqlBackend string) (sq
 	columnsStr := "etag,"
 	valuesStr := "?,"
 	sqlParams = append(sqlParams, i.ETag)
+	var returningColumns []string
+	returningStr := ""
 
 	for k, v := range i.Payload {
-		columnsStr += k + ","
-		valuesStr += "?," 
-		sqlParams = append(sqlParams, v)
+		switch v.(type) {
+		case AutoIncrementingInteger:
+			returningColumns = append(returningColumns, k)
+		default:
+			columnsStr += k + ","
+			valuesStr += "?,"
+			sqlParams = append(sqlParams, v)
+		}
 	}
 
 	columnsStr = columnsStr[:len(columnsStr)-1]
 	valuesStr = valuesStr[:len(valuesStr)-1]
 
-	sqlQuery = fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", tableName, columnsStr, valuesStr)
+	if len(returningColumns) > 0 {
+		returningStr += fmt.Sprintf(" RETURNING %s", strings.Join(returningColumns, ","))
+	}
+
+	sqlQuery = fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)%s", tableName, columnsStr, valuesStr, returningStr)
 
 	return transformQuery(sqlQuery, sqlBackend), transformParams(sqlParams, sqlBackend), nil
 }
@@ -147,6 +166,21 @@ func buildSortQuery(q *query.Query) (sqlQuery string, sqlParams []interface{}, e
 	return sqlQuery[:len(sqlQuery)-1], []interface{}{}, nil
 }
 
+func buildPaginationQuery(q *query.Query) (sqlQuery string, err error) {
+	if q.Window == nil{
+		return
+	}
+	limit := q.Window.Limit
+	if limit > 0 {
+		sqlQuery += fmt.Sprintf(" LIMIT %d", limit)
+	}
+	offset := q.Window.Offset
+	if offset > 0 {
+		sqlQuery += fmt.Sprintf(" OFFSET %d", offset)
+	}
+	return
+}
+
 func translatePredicate(q query.Predicate) (sqlQuery string, sqlParams []interface{}, err error) {
 	for i, exp := range q {
 		if i > 0 {
@@ -186,6 +220,8 @@ func translatePredicate(q query.Predicate) (sqlQuery string, sqlParams []interfa
 			switch t.Value.(type) {
 			case string:
 				sqlQuery += t.Field + " LIKE ?"
+			case int:
+				sqlQuery += t.Field + " = ?"
 			default:
 				sqlQuery += t.Field + " IS ?"
 			}
