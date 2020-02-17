@@ -1,6 +1,7 @@
 package sqlStorage
 
 import (
+	"fmt"
 	"log"
 	"context"
 	"database/sql"
@@ -21,6 +22,7 @@ type AutoIncrementingInteger int
 
 type Config struct {
 	VerboseLevel int
+	QueryTemplates map[string]string
 }
 
 type SQLHandler struct {
@@ -161,7 +163,7 @@ func (h *SQLHandler)Insert(ctx context.Context, items []*resource.Item) (err err
 		}
 
 		if h.driverName == "postgres" {
-			rows, err := h.QueryContext(ctx, sqlQuery, sqlParams...)
+			rows, err := h.QueryContext(ctx, h.ApplyQueryTemplate("insert", sqlQuery), sqlParams...)
 			if err != nil {
 				txPtr.Rollback()
 				return err
@@ -216,7 +218,7 @@ func (h *SQLHandler)Insert(ctx context.Context, items []*resource.Item) (err err
 				}
 			}
 		} else {
-			_, err = h.ExecContext(ctx, sqlQuery, sqlParams...)
+			_, err = h.ExecContext(ctx, h.ApplyQueryTemplate("insert", sqlQuery), sqlParams...)
 			if err != nil {
 				txPtr.Rollback()
 				return err
@@ -235,7 +237,7 @@ func (h *SQLHandler) Update(ctx context.Context, item *resource.Item, original *
 		return err
 	}
 
-	_, err  = h.ExecContext(ctx, sqlQuery, sqlParams...)
+	_, err  = h.ExecContext(ctx, h.ApplyQueryTemplate("update", sqlQuery), sqlParams...)
 	return err
 }
 
@@ -245,7 +247,7 @@ func (h *SQLHandler) Delete(ctx context.Context, item *resource.Item) (err error
 		return err
 	}
 
-	_, err = h.ExecContext(ctx, sqlQuery, sqlParams...)
+	_, err = h.ExecContext(ctx, h.ApplyQueryTemplate("delete", sqlQuery), sqlParams...)
 	return err
 }
 
@@ -261,7 +263,7 @@ func (h *SQLHandler) Clear(ctx context.Context, q *query.Query) (total int, err 
 		return 0,err
 	}
 
-	res, err := h.ExecContext(ctx, sqlQuery, sqlParams...)
+	res, err := h.ExecContext(ctx, h.ApplyQueryTemplate("clear", sqlQuery), sqlParams...)
 	if err != nil {
 		txPtr.Rollback()
 		return 0,err
@@ -276,3 +278,10 @@ func (h *SQLHandler) Clear(ctx context.Context, q *query.Query) (total int, err 
 	return int(count), nil
 }
 
+func (h *SQLHandler) ApplyQueryTemplate(queryTemplateName string, sqlQuery string) string {
+	if tmpl, ok := h.config.QueryTemplates[queryTemplateName]; ok {
+		return fmt.Sprintf(tmpl, sqlQuery)
+	} else {
+		return sqlQuery
+	}
+}
