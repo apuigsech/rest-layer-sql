@@ -321,12 +321,19 @@ func transformParams_postgres(sqlParams []interface{}) ([]interface{}) {
 
 	for _,p := range sqlParams {
 		t := reflect.TypeOf(p)
-		switch t.Kind() {
-			case reflect.Slice, reflect.Array:
-				newSqlParams = append(newSqlParams, pq.Array(p))
-			default:
-				newSqlParams = append(newSqlParams, p)
-		} 
+		
+		if t == nil {
+			newSqlParams = append(newSqlParams, p)
+		} else {
+			switch t.Kind() {
+				case reflect.Slice, reflect.Array:
+					newSqlParams = append(newSqlParams, pq.Array(p))
+				default:
+					newSqlParams = append(newSqlParams, p)
+			} 
+		
+		}
+		
 	}
 
 	return newSqlParams
